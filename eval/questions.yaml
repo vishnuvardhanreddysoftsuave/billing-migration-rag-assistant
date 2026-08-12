@@ -1,0 +1,170 @@
+# Evaluation set for the Week 3 billing-migration help-centre drop.
+#
+# PROVENANCE: every question below was written by reading the six source articles
+# and recording the answer we already knew, BEFORE any search was executed against
+# either index. The git history for this file predates the first commit of any
+# results/ artefact. Nothing here was edited after seeing retrieval output.
+#
+# SCORING CONTRACT (fixed before the first run, applied identically to every strategy):
+#   A question counts as a HIT if at least one of the top-5 retrieved chunks
+#     (a) has metadata.article_id equal to gold.article_id, AND
+#     (b) contains every string in must_contain (case-insensitive substring match).
+#   Criterion (b) is what makes this a test of chunking rather than of ranking:
+#   it asks whether the answer actually survives inside a single retrieved chunk.
+
+version: 1
+authored_at: "2026-08-13"
+authored_before_retrieval: true
+
+answerable:
+  - id: Q1
+    question: "What does ERR-4032 mean and what is the fix?"
+    depends_on_table_row: true
+    gold:
+      article_id: HC-4002
+      source_file: HC-4002-payment-method-errors.md
+      section: "Troubleshooting: payment method errors"
+      locator: "table row ERR-4032"
+    known_answer: >-
+      The stored card token was issued before 2026-05-01 and has no network transaction
+      identifier, so it was not migrated to the new vault. The fix is to have the customer
+      re-authorise the card under Billing -> Payment methods; pre-2026-05-01 tokens must be
+      re-entered by the cardholder.
+    must_contain: ["ERR-4032", "re-authorise the card"]
+
+  - id: Q2
+    question: "A customer's VAT ID was rejected with ERR-4117. What causes it and how do we fix it?"
+    depends_on_table_row: true
+    gold:
+      article_id: HC-4005
+      source_file: HC-4005-tax-vat-validation.md
+      section: "Troubleshooting: tax validation errors"
+      locator: "table row ERR-4117"
+    known_answer: >-
+      VIES rejected the VAT ID because the registration is no longer active for
+      cross-border trade. Ask the customer to confirm the number with their tax authority
+      and re-enter it; if VIES is down, mark the account "validation pending" and re-run
+      the check within 5 business days.
+    must_contain: ["ERR-4117", "VIES"]
+
+  - id: Q3
+    question: "What causes ERR-4203 on webhook delivery and how do we resolve it?"
+    depends_on_table_row: true
+    gold:
+      article_id: HC-4006
+      source_file: HC-4006-api-webhook-changes.md
+      section: "Troubleshooting: API and webhook errors"
+      locator: "table row ERR-4203"
+    known_answer: >-
+      The webhook payload was signed with the legacy shared secret, so the signature did
+      not match. Rotate to the v2 signing secret in Developer -> Webhooks and verify with
+      HMAC-SHA256 over the raw request body.
+    must_contain: ["ERR-4203", "HMAC-SHA256"]
+
+  - id: Q4
+    question: "What does ERR-4088 mean on a migrated invoice and what should an agent do?"
+    depends_on_table_row: true
+    gold:
+      article_id: HC-4003
+      source_file: HC-4003-invoice-discrepancies.md
+      section: "Troubleshooting: invoice errors"
+      locator: "table row ERR-4088"
+    known_answer: >-
+      A duplicate invoice number was generated because the legacy sequence was replayed
+      into the new ledger. Void the duplicate and re-issue; the B2- sequence must be
+      contiguous per account and never reuses a number.
+    must_contain: ["ERR-4088", "Void the duplicate"]
+
+  - id: Q5
+    question: "Between the Phase 3 cutover and Phase 4, what can still be done on the legacy billing service?"
+    depends_on_table_row: false
+    gold:
+      article_id: HC-4001
+      source_file: HC-4001-billing-migration-overview.md
+      section: "Cutover timeline"
+      locator: "paragraph after the phase table"
+    known_answer: >-
+      The legacy service stays read-only: historical invoices and statements can still be
+      downloaded, but no new charges, refunds, or payment-method updates are accepted.
+    must_contain: ["read-only", "no new charges, refunds, or payment-method updates"]
+
+  - id: Q6
+    question: "How is proration calculated when a subscription is mapped to a new tier mid-cycle?"
+    depends_on_table_row: false
+    gold:
+      article_id: HC-4004
+      source_file: HC-4004-plan-mapping-proration.md
+      section: "How proration is calculated"
+      locator: "first paragraph"
+    known_answer: >-
+      The unused portion of the legacy plan is credited at its daily rate and the new tier
+      is charged pro rata from the mapping date. Proration is always calculated on a
+      30-day month regardless of the calendar length of the month.
+    must_contain: ["30-day month"]
+
+  - id: Q7
+    question: "How long are failed webhook deliveries retried, and how many attempts are made?"
+    depends_on_table_row: false
+    gold:
+      article_id: HC-4006
+      source_file: HC-4006-api-webhook-changes.md
+      section: "Webhook delivery and the retry window"
+      locator: "first paragraph"
+    known_answer: >-
+      A failed webhook delivery is retried with exponential backoff for up to 24 hours,
+      across 6 attempts, after which the event is dropped and recorded as undeliverable.
+    must_contain: ["24 hours", "6 attempts"]
+
+  - id: Q8
+    question: "What happens to a customer's legacy credit balance after migration?"
+    depends_on_table_row: false
+    gold:
+      article_id: HC-4003
+      source_file: HC-4003-invoice-discrepancies.md
+      section: "Why the first post-migration invoice looks different"
+      locator: "second paragraph"
+    known_answer: >-
+      The balance is carried over as a single line item named "migration credit" and
+      applied to the first invoice issued after cutover. Balances below 1.00 in the
+      account's billing currency are written off rather than carried.
+    must_contain: ["migration credit", "written off"]
+
+# Questions the corpus cannot answer. These must be refused, not invented.
+unanswerable:
+  - id: U1
+    question: "What is the refund SLA for a charge disputed during the billing migration?"
+    why_absent: "No article states a refund service-level agreement; HC-4001 mentions disputes only as a migration blocker (ERR-4008)."
+  - id: U2
+    question: "What are the billing support hotline's hours of operation?"
+    why_absent: "The corpus contains no support contact details or opening hours."
+  - id: U3
+    question: "What discount applies if a customer prepays for 12 months during the migration window?"
+    why_absent: "No article mentions prepayment discounts; HC-4004 covers plan mapping and proration only."
+
+# One query used to demonstrate that a product_area metadata filter changes retrieval.
+# "Retry window" is deliberately ambiguous across the corpus: HC-4002 documents the
+# 10-day dunning retry window, HC-4006 documents the 24-hour webhook retry window.
+filter_demo:
+  id: F1
+  question: "How long is the retry window after a failure?"
+  filter:
+    product_area: developer-api
+  expectation: >-
+    Unfiltered retrieval should surface the payments dunning window at rank 1; filtering to
+    product_area=developer-api should put the webhook retry window at rank 1 instead.
+
+# Bonus challenge: precision vs completeness. The structure-aware chunker should retrieve
+# the ERR-4032 row more precisely, but the tight row lacks the surrounding prose that says
+# the customer needs the physical card in hand to complete the re-authorisation.
+bonus:
+  id: B1
+  question: "A customer hit ERR-4032. What do I tell them to do, and what will they need to hand?"
+  gold:
+    article_id: HC-4002
+    sections:
+      - "Troubleshooting: payment method errors (row ERR-4032)"
+      - "Re-authorisation walkthrough"
+  known_answer: >-
+    Direct them to Billing -> Payment methods -> "Re-authorise card". They need the
+    physical card, because the flow asks for the full card number, expiry, and CVC: the
+    pre-2026-05-01 token cannot supply them.
