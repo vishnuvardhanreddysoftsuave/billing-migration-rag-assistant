@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 web = ["Flask>=3.0"]
+chat = ["streamlit>=1.30"]
 claude = ["anthropic>=0.121"]
 
 [project.scripts]

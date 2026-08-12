@@ -1,12 +1,17 @@
-# RAG help-centre assistant — Week 3 Task Set A
+# Billing Migration Help-Centre Assistant
 
-A retrieval-augmented assistant over a customer-support help centre. It answers only from
-the indexed articles, cites a resolvable `chunk_id` for every claim, and refuses anything
-the corpus does not cover.
+A retrieval-augmented (RAG) chatbot over a customer-support help centre. It answers only
+from the indexed articles, cites a resolvable `chunk_id` for every claim internally, and
+**refuses** anything the corpus does not cover instead of guessing.
 
-This repository contains the Week 3 app **plus** this week's extension: a second,
-structure-aware chunking strategy, full chunk metadata with retrieval-time filtering, and
-an evaluation harness that produces [results.md](results.md).
+*Originally built as a Week 3 "AI Engineering League" practical (Task Set A): ingest a new
+help-centre drop, compare two chunking strategies on questions with known answers, and
+prove the app won't hallucinate.*
+
+This repository contains the base app **plus** the week's extension: a second,
+structure-aware chunking strategy that never separates a table row from its header, full
+chunk metadata with retrieval-time filtering, a chat UI, and an evaluation harness that
+produces [results.md](results.md) from a real measured run — not hand-written numbers.
 
 ## Headline numbers
 
@@ -30,12 +35,28 @@ python rag.py ingest --label "week3-new-drop"                       # the six ne
 python rag.py ask "What does ERR-4032 mean and what is the fix?"
 python rag.py ask "What is the refund SLA for a disputed charge?"   # refuses
 python rag.py eval                                                   # regenerates results.md
-python rag.py serve                                                  # web UI on :5000
+
+streamlit run streamlit_app.py                                       # chat UI, on :8501
+python rag.py serve                                                  # dev UI + JSON API, on :5000
 ```
 
 No API key is required. Without Anthropic credentials the pipeline uses a deterministic
 extractive generator that quotes the retrieved chunks verbatim; with credentials it uses
 Claude (`claude-opus-5`) automatically. Both paths are grounded, cited and can refuse.
+
+## Frontends
+
+| | Run with | What you get |
+|---|---|---|
+| **Chat UI** (recommended) | `streamlit run streamlit_app.py` | Plain chatbot-style conversation. Greetings/thanks get a natural reply; real questions go through the full grounded pipeline. No chunk IDs or source tables shown — just the answer. |
+| **Dev UI** | `python rag.py serve` | Shows the retrieved chunks and resolved citations alongside the answer — useful for inspecting *why* the app answered or refused. |
+| **CLI** | `python rag.py ask "..."` | Scriptable; `--json` for machine-readable output. |
+
+> **Windows note:** if your global Python has an older `protobuf` pinned by another package
+> (e.g. TensorFlow), Streamlit may fail to import. Rather than upgrading `protobuf` globally
+> and risking that other package, create an isolated environment for this project:
+> `python -m venv .venv && .venv/Scripts/pip install -r requirements.txt`, then run commands
+> through `.venv/Scripts/python.exe` (or activate the venv first).
 
 ## How it works
 
@@ -74,6 +95,7 @@ refusal. See `src/ragchat/grounding.py`.
 ```
 config.yaml               all tunable settings (thresholds, sizes, model, paths)
 rag.py                    CLI launcher, no install needed
+streamlit_app.py          chatbot-style chat UI (streamlit run streamlit_app.py)
 data/articles/            the six new help-centre articles
 data/legacy_articles/     two older articles standing in for the pre-existing index
 eval/questions.yaml       8 known-answer + 3 out-of-corpus questions, committed first

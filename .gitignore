@@ -6,3 +6,4 @@ venv/
 index/
 .pytest_cache/
 *.egg-info/
+.claude/
