@@ -7,7 +7,10 @@ from typing import Any, Dict, List, Optional
 
 # Metadata every chunk must carry. A chunk missing any of these is a failed
 # ingest and the indexer raises rather than storing it.
-REQUIRED_METADATA = ("source_file", "article_id")
+REQUIRED_METADATA = ("source_file", "article_id", "product_area", "last_updated")
+
+# Metadata keys retrieval may be filtered on.
+FILTERABLE_METADATA = ("product_area", "article_id", "source_file", "last_updated")
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,14 @@ class Chunk:
     @property
     def source_file(self) -> str:
         return str(self.metadata.get("source_file", ""))
+
+    @property
+    def product_area(self) -> str:
+        return str(self.metadata.get("product_area", ""))
+
+    @property
+    def last_updated(self) -> str:
+        return str(self.metadata.get("last_updated", ""))
 
     @property
     def n_chars(self) -> int:

@@ -15,7 +15,8 @@ FRONT_MATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 H1_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 
 # Front-matter keys an article must declare for its chunks to be indexable.
-REQUIRED_FRONT_MATTER = ("article_id",)
+# An article missing any of these is a failed ingest, not a silently degraded one.
+REQUIRED_FRONT_MATTER = ("article_id", "product_area", "last_updated")
 
 
 class IngestError(RuntimeError):

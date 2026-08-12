@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from .config import Config
 from .embeddings import HashingTfidfEmbedder, build_embedder
@@ -36,13 +36,21 @@ class Retriever:
     def namespace(self) -> str:
         return self.store.namespace
 
-    def search(self, question: str, top_k: int = 5) -> List[SearchHit]:
+    def search(
+        self,
+        question: str,
+        top_k: int = 5,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[SearchHit]:
         query_vector = self.embedder.embed_query(question, self.store.df, self.store.n_units)
-        ranked = self.store.search(query_vector, top_k=top_k)
+        ranked = self.store.search(query_vector, top_k=top_k, filters=filters)
         return [
             SearchHit(rank=rank, score=score, chunk=self.store.chunks[row])
             for rank, (row, score) in enumerate(ranked, start=1)
         ]
+
+    def distinct_values(self, key: str) -> List[str]:
+        return self.store.distinct_values(key)
 
     def get_chunk(self, chunk_id: str) -> Optional[Chunk]:
         return self.store.get(chunk_id)

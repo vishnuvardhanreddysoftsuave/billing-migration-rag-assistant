@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from .config import Config
 from .generator import Generator, build_generator
@@ -42,22 +42,40 @@ class RAGPipeline:
     def namespace(self) -> str:
         return self.retriever.namespace
 
-    def search(self, question: str, top_k: int | None = None) -> List[SearchHit]:
-        return self.retriever.search(question, top_k=top_k or self.config.retrieval.top_k)
+    def search(
+        self,
+        question: str,
+        top_k: int | None = None,
+        filters: Dict[str, Any] | None = None,
+    ) -> List[SearchHit]:
+        return self.retriever.search(
+            question, top_k=top_k or self.config.retrieval.top_k, filters=filters
+        )
 
-    def ask(self, question: str, top_k: int | None = None) -> Answer:
-        hits = self.search(question, top_k=top_k)
+    def ask(
+        self,
+        question: str,
+        top_k: int | None = None,
+        filters: Dict[str, Any] | None = None,
+    ) -> Answer:
+        hits = self.search(question, top_k=top_k, filters=filters)
         context = hits[: self.config.generation.max_context_chunks]
 
         verdict = self.gate.evaluate(question, context)
         if not verdict.sufficient:
-            return self._refuse(question, hits, verdict.reason, {"evidence": verdict.to_dict()})
+            return self._refuse(
+                question,
+                hits,
+                verdict.reason,
+                {"evidence": verdict.to_dict(), "namespace": self.namespace, "filters": filters or {}},
+            )
 
         result = self.generator.generate(question, context)
         diagnostics = {
             "evidence": verdict.to_dict(),
             "generation": result.diagnostics,
             "namespace": self.namespace,
+            "filters": filters or {},
         }
         if result.refused:
             return self._refuse(question, hits, result.reason, diagnostics, backend=result.backend)

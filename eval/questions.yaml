@@ -159,6 +159,7 @@ filter_demo:
 bonus:
   id: B1
   question: "A customer hit ERR-4032. What do I tell them to do, and what will they need to hand?"
+  context_chunks: 5
   gold:
     article_id: HC-4002
     sections:
@@ -168,3 +169,30 @@ bonus:
     Direct them to Billing -> Payment methods -> "Re-authorise card". They need the
     physical card, because the flow asks for the full card number, expiry, and CVC: the
     pre-2026-05-01 token cannot supply them.
+
+# ---------------------------------------------------------------------------
+# ADDED AFTER THE FIRST RUN — disclosed, and not part of any scored metric.
+#
+# B1 above turned out to be a poor probe, which is itself a finding: its colloquial
+# phrasing ("hit", "need to hand") contains two ordinary English words the corpus does
+# not use, so the evidence gate refuses it under the shipping threshold, and neither
+# strategy ranks the ERR-4032 row first. B1 is kept and reported unchanged.
+#
+# B2 asks the same thing in the register a support agent actually types, and pins the
+# context to a single chunk, which is what isolates the precision/completeness tension
+# the bonus challenge is about.
+# ---------------------------------------------------------------------------
+bonus_followup:
+  id: B2
+  added_after_first_run: true
+  question: "A customer reports ERR-4032. What is the fix, and what will the customer need in order to complete it?"
+  context_chunks: 1
+  gold:
+    article_id: HC-4002
+    sections:
+      - "Troubleshooting: payment method errors (row ERR-4032)"
+      - "Re-authorisation walkthrough"
+  known_answer: >-
+    Have the customer re-authorise the card under Billing -> Payment methods. They need
+    the physical card in hand, because the flow asks for the full card number, expiry
+    and CVC that the pre-2026-05-01 token cannot supply.

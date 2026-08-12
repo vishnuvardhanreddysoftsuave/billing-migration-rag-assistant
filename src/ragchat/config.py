@@ -116,6 +116,17 @@ class Config:
             raw=raw,
         )
 
+    @property
+    def repo_root(self) -> Path:
+        return REPO_ROOT
+
+    def with_grounding(self, *, min_evidence_coverage: float) -> "Config":
+        """Return a copy with a different evidence threshold (used by the bonus run)."""
+        return replace(
+            self,
+            grounding=replace(self.grounding, min_evidence_coverage=min_evidence_coverage),
+        )
+
     def with_chunking(self, *, chunk_size: int | None = None, chunk_overlap: int | None = None) -> "Config":
         """Return a copy with chunk sizing overridden (used by the sweep)."""
         chunking = replace(

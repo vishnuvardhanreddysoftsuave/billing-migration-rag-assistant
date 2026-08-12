@@ -6,9 +6,11 @@ from typing import Dict, Type
 
 from .base import Chunker
 from .baseline import BaselineChunker
+from .structure_aware import StructureAwareChunker
 
 _REGISTRY: Dict[str, Type[Chunker]] = {
     BaselineChunker.name: BaselineChunker,
+    StructureAwareChunker.name: StructureAwareChunker,
 }
 
 
@@ -24,4 +26,10 @@ def get_chunker(name: str, chunk_size: int, chunk_overlap: int) -> Chunker:
     return cls(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
 
-__all__ = ["Chunker", "BaselineChunker", "available_strategies", "get_chunker"]
+__all__ = [
+    "Chunker",
+    "BaselineChunker",
+    "StructureAwareChunker",
+    "available_strategies",
+    "get_chunker",
+]

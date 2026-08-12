@@ -85,12 +85,15 @@ class VectorStore:
         if vectors.shape[1] != self.spec.n_features:
             raise StoreError("vector width does not match the embedding spec")
 
+        incoming: set[str] = set()
         for chunk in chunks:
             missing = [key for key in REQUIRED_METADATA if not str(chunk.metadata.get(key, "")).strip()]
             if missing:
                 raise StoreError(f"chunk {chunk.chunk_id} is missing required metadata {missing}")
-            if chunk.chunk_id in self._by_id:
+            # Duplicates must be caught both against the stored index and within this batch.
+            if chunk.chunk_id in self._by_id or chunk.chunk_id in incoming:
                 raise StoreError(f"duplicate chunk_id {chunk.chunk_id}")
+            incoming.add(chunk.chunk_id)
 
         start = len(self.chunks)
         for offset, chunk in enumerate(chunks):
@@ -103,12 +106,29 @@ class VectorStore:
 
     # -- query ----------------------------------------------------------
 
-    def search(self, query_vector: sp.csr_matrix, top_k: int) -> List[Tuple[int, float]]:
-        """Return (row index, score) for the ``top_k`` best chunks."""
+    def search(
+        self,
+        query_vector: sp.csr_matrix,
+        top_k: int,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> List[Tuple[int, float]]:
+        """Return (row index, score) for the ``top_k`` best chunks.
+
+        ``filters`` maps a metadata key to an accepted value (or list of values).
+        Filtering is applied to the candidate set before ranking, so a filtered
+        search can return a different top-1, not merely a shorter list.
+        """
         if self.matrix is None or not self.chunks:
             return []
         scores = np.asarray((self.matrix @ query_vector.T).todense()).ravel()
+        if filters:
+            keep = np.array([_matches(chunk, filters) for chunk in self.chunks], dtype=bool)
+            scores = np.where(keep, scores, 0.0)
         return self._rank(scores, top_k)
+
+    def distinct_values(self, key: str) -> List[str]:
+        """Sorted distinct values of a metadata key across the index."""
+        return sorted({str(chunk.metadata.get(key, "")) for chunk in self.chunks if chunk.metadata.get(key)})
 
     def _rank(self, scores: np.ndarray, top_k: int) -> List[Tuple[int, float]]:
         eligible = np.flatnonzero(scores > 0.0)
@@ -193,6 +213,18 @@ class VectorStore:
                 f"but the current config asks for {spec.to_dict()}; delete the index or restore the config"
             )
         return store
+
+
+def _matches(chunk: Chunk, filters: Dict[str, Any]) -> bool:
+    """True when a chunk satisfies every filter (case-insensitive, value or list)."""
+    for key, wanted in filters.items():
+        if wanted is None or wanted == "":
+            continue
+        actual = str(chunk.metadata.get(key, "")).strip().lower()
+        accepted = wanted if isinstance(wanted, (list, tuple, set)) else [wanted]
+        if actual not in {str(value).strip().lower() for value in accepted}:
+            return False
+    return True
 
 
 def namespace_for(strategy: str, chunk_size: int, chunk_overlap: int) -> str:
