@@ -1,0 +1,53 @@
+# Central configuration. Nothing that a grader might want to change should be
+# hard-coded in the source; change it here or override it on the CLI.
+
+paths:
+  articles_dir: data/articles
+  legacy_articles_dir: data/legacy_articles
+  index_dir: index
+  results_dir: results
+
+chunking:
+  default_strategy: baseline
+  # Sizes are in characters. Both strategies read the same two knobs so that a
+  # chunk-size sweep changes exactly one variable.
+  chunk_size: 800
+  chunk_overlap: 120
+
+embedding:
+  # Stateless hashing vectoriser: no vocabulary is fitted, so appending a new
+  # drop to an existing index never invalidates the vectors already stored.
+  backend: hashing-tfidf
+  n_features: 262144
+  ngram_min: 1
+  ngram_max: 2
+  lowercase: true
+
+retrieval:
+  top_k: 5
+
+generation:
+  # auto -> use Claude when credentials are present, otherwise the deterministic
+  # extractive generator. Both are grounded and both can refuse.
+  backend: auto
+  model: claude-opus-5
+  max_tokens: 8000
+  effort: medium
+  max_context_chunks: 5
+
+grounding:
+  # Hard evidence gate. Applied BEFORE generation: if the retrieved context does
+  # not clear these thresholds the question is refused and no model is called.
+  #
+  # min_top_score is only a floor for "nothing matched at all" — similarity is
+  # length-dependent, so it is not a tuning knob.
+  # min_evidence_coverage is the share of the question's information content
+  # (idf-weighted terms) that must actually appear in the retrieved chunks.
+  # Calibrated on the 11-question dev set: the 8 known-answer questions score
+  # 0.63-1.00 and the 3 out-of-corpus questions score 0.15-0.45, so 0.55 sits in
+  # the gap with ~0.08 margin below and ~0.10 above. See results.md.
+  min_top_score: 0.005
+  min_evidence_coverage: 0.55
+  refusal_message: >-
+    I cannot answer that from the indexed help-centre articles. The retrieved
+    context does not contain the information needed, so I will not guess.

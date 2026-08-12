@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragchat"
+version = "1.0.0"
+description = "Retrieval-augmented help-centre assistant with forced refusal and resolvable citations"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+web = ["Flask>=3.0"]
+claude = ["anthropic>=0.121"]
+
+[project.scripts]
+ragchat = "ragchat.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
