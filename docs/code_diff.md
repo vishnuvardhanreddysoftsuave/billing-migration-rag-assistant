@@ -1,27 +1,31 @@
 # Code diff — the second chunker and the metadata fields
 
-The Week 3 extension as a single diff: `f047809` (the app as it stood) -> `25152e1`.
+The Week 3 extension as a single diff: `f047809` (the app as it stood at the end of Week 3)
+through `83a0982` (this submission).
 
 Two things the task asks to see specifically:
 
 * **The second chunker** — `src/ragchat/chunkers/structure_aware.py` (new file) and its
-  registration in `src/ragchat/chunkers/__init__.py`.
+  registration in `src/ragchat/chunkers/__init__.py`. It parses markdown blocks and
+  guarantees a table row is never separated from its header row.
 * **The metadata fields** — `product_area` and `last_updated` become required in
   `src/ragchat/models.py` (`REQUIRED_METADATA`) and `src/ragchat/loader.py`
-  (`REQUIRED_FRONT_MATTER`), and `src/ragchat/store.py` gains metadata filtering so
-  retrieval can be restricted by `product_area`.
+  (`REQUIRED_FRONT_MATTER`), so an article missing either is a failed ingest.
+  `src/ragchat/store.py` gains metadata filtering, applied to the candidate set before
+  ranking so a filtered search can return a different top-1.
 
 Regenerate with:
 
-    git diff f047809..25152e1 -- src/ config.yaml eval/questions.yaml
+    git diff f047809..HEAD -- src/ config.yaml eval/questions.yaml
 
-Stat summary:
+## Files changed
 
 ```text
+ config.yaml                             |   4 +-
  eval/questions.yaml                     |  28 ++
  src/ragchat/chunkers/__init__.py        |  10 +-
  src/ragchat/chunkers/structure_aware.py | 342 +++++++++++++++++++
- src/ragchat/cli.py                      |  88 ++++-
+ src/ragchat/cli.py                      | 104 +++++-
  src/ragchat/config.py                   |  11 +
  src/ragchat/evaluation.py               | 583 ++++++++++++++++++++++++++++++++
  src/ragchat/loader.py                   |   3 +-
@@ -31,12 +35,27 @@ Stat summary:
  src/ragchat/retriever.py                |  14 +-
  src/ragchat/store.py                    |  38 ++-
  src/ragchat/webapp.py                   | 164 +++++++++
- 13 files changed, 1678 insertions(+), 20 deletions(-)
+ 14 files changed, 1695 insertions(+), 23 deletions(-)
 ```
 
 ## Full diff
 
 ```diff
+diff --git a/config.yaml b/config.yaml
+index 0001bb0..587648f 100644
+--- a/config.yaml
++++ b/config.yaml
+@@ -8,7 +8,9 @@ paths:
+   results_dir: results
+ 
+ chunking:
+-  default_strategy: baseline
++  # The strategy that ships. See section 8 of results.md for the evidence:
++  # identical hit@5, but 8/8 vs 3/8 on self-contained retrieval.
++  default_strategy: structure-aware
+   # Sizes are in characters. Both strategies read the same two knobs so that a
+   # chunk-size sweep changes exactly one variable.
+   chunk_size: 800
 diff --git a/eval/questions.yaml b/eval/questions.yaml
 index ffcb15f..4335c08 100644
 --- a/eval/questions.yaml
@@ -457,10 +476,26 @@ index 0000000..e5c0dce
 +        tail_len += len(unit.text) + 2
 +    return tail, tail_len
 diff --git a/src/ragchat/cli.py b/src/ragchat/cli.py
-index a356c89..72b7cb6 100644
+index a356c89..e1ebd6a 100644
 --- a/src/ragchat/cli.py
 +++ b/src/ragchat/cli.py
-@@ -39,17 +39,53 @@ def build_parser() -> argparse.ArgumentParser:
+@@ -9,12 +9,13 @@ from pathlib import Path
+ from typing import List, Sequence
+ 
+ from .chunkers import available_strategies
+-from .config import Config
++from .config import Config, ConfigError
+ from .indexer import ingest
++from .loader import IngestError
+ from .models import Answer, SearchHit
+ from .pipeline import RAGPipeline
+ from .retriever import Retriever
+-from .store import VectorStore, namespace_for
++from .store import StoreError, VectorStore, namespace_for
+ 
+ 
+ def build_parser() -> argparse.ArgumentParser:
+@@ -39,17 +40,53 @@ def build_parser() -> argparse.ArgumentParser:
      p_search.add_argument("question")
      p_search.add_argument("--top-k", type=int, default=None)
      p_search.add_argument("--json", action="store_true", help="emit JSON instead of text")
@@ -514,7 +549,29 @@ index a356c89..72b7cb6 100644
  def load_config(args: argparse.Namespace) -> Config:
      config = Config.load(args.config)
      if args.chunk_size is not None or args.chunk_overlap is not None:
-@@ -77,28 +113,69 @@ def main(argv: Sequence[str] | None = None) -> int:
+@@ -58,10 +95,21 @@ def load_config(args: argparse.Namespace) -> Config:
+ 
+ 
+ def main(argv: Sequence[str] | None = None) -> int:
++    """Entry point. Known failures become a one-line message, not a traceback."""
+     parser = build_parser()
+     args = parser.parse_args(argv)
++    try:
++        return _dispatch(parser, args)
++    except (ConfigError, IngestError, StoreError, ValueError) as exc:
++        print(f"error: {exc}", file=sys.stderr)
++        return 2
++
++
++def _dispatch(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+     config = load_config(args)
+     strategy = args.strategy or config.chunking.default_strategy
++    if strategy not in available_strategies():
++        parser.error(f"unknown strategy {strategy!r}; available: {', '.join(available_strategies())}")
+ 
+     if args.command == "ingest":
+         paths: List[Path] = list(args.paths) or [config.paths.articles_dir]
+@@ -77,28 +125,69 @@ def main(argv: Sequence[str] | None = None) -> int:
  
      if args.command == "search":
          retriever = Retriever.open(config, strategy=strategy, index_dir=args.index_dir)
@@ -589,7 +646,7 @@ index a356c89..72b7cb6 100644
      if not hits:
          lines.append("(no matches)")
          return "\n".join(lines)
-@@ -108,6 +185,7 @@ def format_hits(question: str, namespace: str, hits: Sequence[SearchHit]) -> str
+@@ -108,6 +197,7 @@ def format_hits(question: str, namespace: str, hits: Sequence[SearchHit]) -> str
          lines.append(
              f"#{hit.rank}  score={hit.score:.4f}  {chunk.chunk_id}\n"
              f"    article={chunk.article_id}  file={chunk.source_file}\n"
@@ -1974,4 +2031,3 @@ index 0000000..0a7175a
 +
 +    return app
 ```
-
