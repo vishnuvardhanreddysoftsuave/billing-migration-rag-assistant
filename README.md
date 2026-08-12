@@ -91,7 +91,7 @@ src/ragchat/
   evaluation.py           the harness behind `rag.py eval`
   reporting.py            writes results.md and the search dumps
   webapp.py               Flask UI + JSON API
-tests/                    47 tests, no network required
+tests/                    48 tests, no network required
 results/                  generated artefacts (json + search dumps)
 docs/code_diff.md         the diff adding the second chunker and the metadata fields
 ```
@@ -118,7 +118,7 @@ namespace, so sweeps never overwrite each other.
 python -m unittest discover -s tests -t .
 ```
 
-47 tests covering chunker guarantees (including the header/row property on the real
+48 tests covering chunker guarantees (including the header/row property on the real
 corpus), metadata validation, store round-trips and filtering, the refusal gate, citation
 validation, and an end-to-end pass that builds a real index in a temp directory.
 

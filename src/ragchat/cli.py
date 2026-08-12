@@ -9,12 +9,13 @@ from pathlib import Path
 from typing import List, Sequence
 
 from .chunkers import available_strategies
-from .config import Config
+from .config import Config, ConfigError
 from .indexer import ingest
+from .loader import IngestError
 from .models import Answer, SearchHit
 from .pipeline import RAGPipeline
 from .retriever import Retriever
-from .store import VectorStore, namespace_for
+from .store import StoreError, VectorStore, namespace_for
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -94,10 +95,21 @@ def load_config(args: argparse.Namespace) -> Config:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point. Known failures become a one-line message, not a traceback."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    try:
+        return _dispatch(parser, args)
+    except (ConfigError, IngestError, StoreError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+def _dispatch(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
     config = load_config(args)
     strategy = args.strategy or config.chunking.default_strategy
+    if strategy not in available_strategies():
+        parser.error(f"unknown strategy {strategy!r}; available: {', '.join(available_strategies())}")
 
     if args.command == "ingest":
         paths: List[Path] = list(args.paths) or [config.paths.articles_dir]

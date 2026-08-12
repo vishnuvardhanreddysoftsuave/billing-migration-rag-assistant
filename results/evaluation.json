@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-12T19:00:54+00:00",
+  "generated_at": "2026-08-12T19:10:27+00:00",
   "config": {
     "chunk_size": 800,
     "chunk_overlap": 120,
@@ -4362,11 +4362,116 @@
       "shipping_gate": 0.55
     }
   ],
-  "sweep": [],
+  "sweep": [
+    {
+      "strategy": "baseline",
+      "chunk_size": 400,
+      "chunk_overlap": 50,
+      "n_chunks": 111,
+      "mean_chunk_chars": 387.0,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "3/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "0/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "baseline",
+      "chunk_size": 800,
+      "chunk_overlap": 100,
+      "n_chunks": 46,
+      "mean_chunk_chars": 690.1,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "3/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "0/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "baseline",
+      "chunk_size": 1200,
+      "chunk_overlap": 120,
+      "n_chunks": 28,
+      "mean_chunk_chars": 971.7,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "4/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "0/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "baseline",
+      "chunk_size": 1600,
+      "chunk_overlap": 120,
+      "n_chunks": 24,
+      "mean_chunk_chars": 1318.0,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "6/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "2/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "structure-aware",
+      "chunk_size": 400,
+      "chunk_overlap": 50,
+      "n_chunks": 104,
+      "mean_chunk_chars": 350.1,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "8/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "4/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "structure-aware",
+      "chunk_size": 800,
+      "chunk_overlap": 100,
+      "n_chunks": 46,
+      "mean_chunk_chars": 550.7,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "8/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "4/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "structure-aware",
+      "chunk_size": 1200,
+      "chunk_overlap": 120,
+      "n_chunks": 39,
+      "mean_chunk_chars": 624.0,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "8/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "4/4",
+      "prose_questions": "4/4"
+    },
+    {
+      "strategy": "structure-aware",
+      "chunk_size": 1600,
+      "chunk_overlap": 120,
+      "n_chunks": 37,
+      "mean_chunk_chars": 650.8,
+      "hit_at_5": "8/8",
+      "hit_rate": 1.0,
+      "self_contained_hit_at_5": "8/8",
+      "table_questions": "4/4",
+      "table_questions_self_contained": "4/4",
+      "prose_questions": "4/4"
+    }
+  ],
   "index_history": {
     "baseline": [
       {
-        "at": "2026-08-12T18:57:43+00:00",
+        "at": "2026-08-12T19:10:26+00:00",
         "label": "legacy-corpus (pre-existing index)",
         "source_files": [
           "HC-1007-legacy-invoice-basics.md",
@@ -4374,10 +4479,10 @@
         ],
         "n_documents": 2,
         "n_chunks": 3,
-        "seconds": 0.006
+        "seconds": 0.005
       },
       {
-        "at": "2026-08-12T18:57:44+00:00",
+        "at": "2026-08-12T19:10:26+00:00",
         "label": "week3-new-drop",
         "source_files": [
           "HC-4001-billing-migration-overview.md",
@@ -4389,12 +4494,12 @@
         ],
         "n_documents": 6,
         "n_chunks": 43,
-        "seconds": 0.039
+        "seconds": 0.03
       }
     ],
     "structure-aware": [
       {
-        "at": "2026-08-12T18:57:44+00:00",
+        "at": "2026-08-12T19:10:22+00:00",
         "label": "legacy-corpus (pre-existing index)",
         "source_files": [
           "HC-1007-legacy-invoice-basics.md",
@@ -4405,7 +4510,7 @@
         "seconds": 0.006
       },
       {
-        "at": "2026-08-12T18:57:44+00:00",
+        "at": "2026-08-12T19:10:24+00:00",
         "label": "week3-new-drop",
         "source_files": [
           "HC-4001-billing-migration-overview.md",
@@ -4417,7 +4522,7 @@
         ],
         "n_documents": 6,
         "n_chunks": 41,
-        "seconds": 0.031
+        "seconds": 0.037
       }
     ]
   }

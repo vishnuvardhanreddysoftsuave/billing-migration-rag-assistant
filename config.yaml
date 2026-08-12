@@ -8,7 +8,9 @@ paths:
   results_dir: results
 
 chunking:
-  default_strategy: baseline
+  # The strategy that ships. See section 8 of results.md for the evidence:
+  # identical hit@5, but 8/8 vs 3/8 on self-contained retrieval.
+  default_strategy: structure-aware
   # Sizes are in characters. Both strategies read the same two knobs so that a
   # chunk-size sweep changes exactly one variable.
   chunk_size: 800

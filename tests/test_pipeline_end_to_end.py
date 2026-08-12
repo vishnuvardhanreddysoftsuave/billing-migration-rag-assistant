@@ -125,6 +125,10 @@ class EndToEndTests(unittest.TestCase):
         answer = self.pipeline.ask("")
         self.assertTrue(answer.refused)
 
+    def test_shipped_default_is_the_chunker_the_writeup_chose(self):
+        """The decision in results.md §8 and the shipped default must not drift apart."""
+        self.assertEqual(self.config.chunking.default_strategy, "structure-aware")
+
 
 if __name__ == "__main__":
     unittest.main()
