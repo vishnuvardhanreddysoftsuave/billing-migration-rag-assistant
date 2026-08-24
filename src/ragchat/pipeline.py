@@ -47,9 +47,13 @@ class RAGPipeline:
         question: str,
         top_k: int | None = None,
         filters: Dict[str, Any] | None = None,
+        mode: str | None = None,
     ) -> List[SearchHit]:
         return self.retriever.search(
-            question, top_k=top_k or self.config.retrieval.top_k, filters=filters
+            question,
+            top_k=top_k or self.config.retrieval.top_k,
+            filters=filters,
+            mode=mode or self.config.retrieval.mode,
         )
 
     def ask(
@@ -57,8 +61,10 @@ class RAGPipeline:
         question: str,
         top_k: int | None = None,
         filters: Dict[str, Any] | None = None,
+        mode: str | None = None,
     ) -> Answer:
-        hits = self.search(question, top_k=top_k, filters=filters)
+        effective_mode = mode or self.config.retrieval.mode
+        hits = self.search(question, top_k=top_k, filters=filters, mode=effective_mode)
         context = hits[: self.config.generation.max_context_chunks]
 
         verdict = self.gate.evaluate(question, context)
@@ -67,7 +73,12 @@ class RAGPipeline:
                 question,
                 hits,
                 verdict.reason,
-                {"evidence": verdict.to_dict(), "namespace": self.namespace, "filters": filters or {}},
+                {
+                    "evidence": verdict.to_dict(),
+                    "namespace": self.namespace,
+                    "filters": filters or {},
+                    "retrieval_mode": effective_mode,
+                },
             )
 
         result = self.generator.generate(question, context)
@@ -76,6 +87,7 @@ class RAGPipeline:
             "generation": result.diagnostics,
             "namespace": self.namespace,
             "filters": filters or {},
+            "retrieval_mode": effective_mode,
         }
         if result.refused:
             return self._refuse(question, hits, result.reason, diagnostics, backend=result.backend)

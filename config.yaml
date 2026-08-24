@@ -27,6 +27,25 @@ embedding:
 
 retrieval:
   top_k: 5
+  # semantic -> cosine search over the hashed lnc.ltc vectors only (Week 3).
+  # hybrid   -> also ranks by BM25 keyword score and fuses the two rankings
+  #             with reciprocal rank fusion. Ships as the default because it
+  #             measurably buys back hit-rate@3 on realistic support-ticket
+  #             phrasing without regressing the Week 3 question set — see
+  #             eval/week4_writeup.md for the before/after numbers and the
+  #             failures it does NOT fix.
+  mode: hybrid
+  # RRF's rank-damping constant. The literature default (60) is tuned for
+  # web-scale corpora of thousands of documents, so 10 was chosen as a value
+  # proportional to this ~46-chunk corpus instead of importing that constant
+  # unquestioned. A sweep from 1 to 5000 found hit-rate@3 on eval/week4_questions.yaml
+  # completely insensitive to this value at this corpus size (see
+  # eval/week4_writeup.md) — disclosed rather than presented as a tuned choice.
+  rrf_k: 10
+  # Standard Okapi BM25 constants: k1 controls term-frequency saturation,
+  # b controls how strongly a chunk's length is penalised.
+  bm25_k1: 1.5
+  bm25_b: 0.75
 
 generation:
   # auto -> use Claude when credentials are present, otherwise the deterministic

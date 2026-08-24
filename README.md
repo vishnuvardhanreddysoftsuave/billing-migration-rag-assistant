@@ -4,16 +4,22 @@ A retrieval-augmented (RAG) chatbot over a customer-support help centre. It answ
 from the indexed articles, cites a resolvable `chunk_id` for every claim internally, and
 **refuses** anything the corpus does not cover instead of guessing.
 
-*Originally built as a Week 3 "AI Engineering League" practical (Task Set A): ingest a new
-help-centre drop, compare two chunking strategies on questions with known answers, and
-prove the app won't hallucinate.*
+*Built as a running "AI Engineering League" practical. Week 3 (Task Set A): ingest a new
+help-centre drop, compare two chunking strategies on questions with known answers, and prove
+the app won't hallucinate. Week 4 (Task Set A): label a failing question's failure as
+retrieval (wrong document) or generation (right document, wrong answer), make one retrieval
+change, and prove it with a before/after number.*
 
-This repository contains the base app **plus** the week's extension: a second,
-structure-aware chunking strategy that never separates a table row from its header, full
-chunk metadata with retrieval-time filtering, a chat UI, and an evaluation harness that
-produces [results.md](results.md) from a real measured run — not hand-written numbers.
+This repository contains the base app, the Week 3 extension (a second, structure-aware
+chunking strategy, chunk metadata with retrieval-time filtering, a chat UI, and an evaluation
+harness that produces [results.md](results.md)), and the Week 4 extension (a hybrid
+semantic+BM25 retriever, a failing-question harness that produces
+[results_week4.md](results_week4.md), and an inspection view for looking at any question's
+retrieval and answer side by side).
 
 ## Headline numbers
+
+**Week 3 — chunking.**
 
 | | `baseline` | `structure-aware` |
 |---|---|---|
@@ -23,6 +29,21 @@ produces [results.md](results.md) from a real measured run — not hand-written 
 
 Full report, per-question records, filter demonstration, cited answers, refusal
 transcripts, chunk-size sweep and the written analysis: **[results.md](results.md)**.
+
+**Week 4 — retrieval.** 18 questions caught failing against Week 3's semantic-only search;
+one change (BM25 keyword search, fused with semantic search by reciprocal rank fusion):
+
+| | semantic (before) | hybrid (after) |
+|---|---|---|
+| hit-rate@3 | 2/18 (11%) | **11/18 (61%)** |
+| recall@3 | 0.065 | **0.593** |
+| MRR@10 | 0.262 | **0.310** |
+
+9 of 16 originally-failing questions fixed, 0 regressed against Week 3's own question set.
+Two questions (`N1`, `N2`) are deliberately left unfixed — the correct chunk was already
+retrieved at rank 1-2; the pipeline still refused, which is a *generation* failure a
+retrieval change cannot and should not touch. Full per-question evidence, what did and did
+not get fixed, and the mechanism: **[results_week4.md](results_week4.md)**.
 
 ## Quick start
 
@@ -35,6 +56,10 @@ python rag.py ingest --label "week3-new-drop"                       # the six ne
 python rag.py ask "What does ERR-4032 mean and what is the fix?"
 python rag.py ask "What is the refund SLA for a disputed charge?"   # refuses
 python rag.py eval                                                   # regenerates results.md
+python rag.py eval-failures                                          # regenerates results_week4.md
+
+python rag.py inspect "Support ticket: account throwing ERR-4117, need root cause and remediation steps quickly." --compare
+                                                                      # question, fetched chunks (both retrieval modes), and the final answer, side by side
 
 streamlit run streamlit_app.py                                       # chat UI, on :8501
 python rag.py serve                                                  # dev UI + JSON API, on :5000
@@ -68,8 +93,8 @@ articles ──▶ loader ──▶ chunker ──▶ embedder ──▶ vector 
                           aware)
                                                         │
 question ──▶ retriever ──▶ evidence gate ──▶ generator ──▶ citation validator ──▶ answer
-                              │                                    │
-                              └── refuse (no model call) ──────────┴── refuse (fail closed)
+             (semantic       │                                    │
+              or hybrid)     └── refuse (no model call) ──────────┴── refuse (fail closed)
 ```
 
 **Chunking.** `baseline` is a recursive character splitter: it walks a separator hierarchy
@@ -84,6 +109,16 @@ appending a new drop cannot change the vectors already stored — ingest is genu
 incremental. The same embedder is used for every strategy and every chunk size, so a
 difference between two runs is attributable to chunking alone.
 
+**Retrieval.** `semantic` is the Week 3 cosine search over the hashed vectors, unchanged.
+`hybrid` (the shipped default) additionally ranks every chunk by BM25 keyword score,
+computed at query time from the same tokenizer the embedder uses, and fuses the two rankings
+with reciprocal rank fusion (RRF). The reason: the semantic vectors are L2-normalised, so a
+long troubleshooting-table chunk with several distinct error codes dilutes each individual
+code's contribution, while BM25's score is a plain idf-weighted sum where one rare, exact
+term — an error code appearing nowhere else in the corpus — dominates regardless of how many
+other terms the chunk carries. See `src/ragchat/bm25.py` and
+[results_week4.md](results_week4.md) for the measured effect.
+
 **Refusal is forced, not suggested.** An evidence gate runs *before* generation and refuses
 when the question's idf-weighted content is not present in the retrieved chunks — no model
 is called at all. Whatever the generator returns is then citation-validated: a claim with
@@ -93,27 +128,32 @@ refusal. See `src/ragchat/grounding.py`.
 ## Layout
 
 ```
-config.yaml               all tunable settings (thresholds, sizes, model, paths)
+config.yaml               all tunable settings (thresholds, sizes, model, paths, retrieval mode)
 rag.py                    CLI launcher, no install needed
 streamlit_app.py          chatbot-style chat UI (streamlit run streamlit_app.py)
 data/articles/            the six new help-centre articles
 data/legacy_articles/     two older articles standing in for the pre-existing index
-eval/questions.yaml       8 known-answer + 3 out-of-corpus questions, committed first
-eval/writeup.md           hand-written analysis embedded into results.md
+eval/questions.yaml       8 known-answer + 3 out-of-corpus questions, committed first (Week 3)
+eval/writeup.md           hand-written analysis embedded into results.md (Week 3)
+eval/week4_questions.yaml 18 failing questions, caught empirically against the Week 3 index (Week 4)
+eval/week4_writeup.md     hand-written analysis embedded into results_week4.md (Week 4)
 src/ragchat/
   chunkers/               baseline.py, structure_aware.py, registry
   loader.py               front matter + required-metadata validation
   embeddings.py           stateless hashing embedder
+  bm25.py                 BM25 keyword index + reciprocal rank fusion
   store.py                append-only vector store, metadata filtering
   indexer.py              ingest pipeline
-  retriever.py            search + idf lookup
+  retriever.py            search (semantic and hybrid) + idf lookup
   grounding.py            evidence gate, citation validation
   generator.py            Claude and extractive backends
   pipeline.py             retrieve -> gate -> generate -> validate
-  evaluation.py           the harness behind `rag.py eval`
-  reporting.py            writes results.md and the search dumps
+  metrics.py              hit-rate@k, recall@k, MRR
+  evaluation.py           the harness behind `rag.py eval` (Week 3)
+  failure_analysis.py     the harness behind `rag.py eval-failures` (Week 4)
+  reporting.py            writes results.md / results_week4.md and the search dumps
   webapp.py               Flask UI + JSON API
-tests/                    48 tests, no network required
+tests/                    70 tests, no network required
 results/                  generated artefacts (json + search dumps)
 docs/code_diff.md         the diff adding the second chunker and the metadata fields
 ```
@@ -123,16 +163,19 @@ docs/code_diff.md         the diff adding the second chunker and the metadata fi
 | Command | What it does |
 |---|---|
 | `ingest [paths]` | Chunk, embed and **append** documents to the index |
-| `search "q"` | Search only, no generation (`--product-area`, `--top-k`, `--json`) |
-| `ask "q"` | Retrieve, then answer with citations or refuse |
-| `eval` | Full evaluation; regenerates `results.md` and `results/` |
+| `search "q"` | Search only, no generation (`--product-area`, `--top-k`, `--retrieval-mode`, `--json`) |
+| `ask "q"` | Retrieve, then answer with citations or refuse (`--retrieval-mode semantic\|hybrid`) |
+| `inspect "q"` | The question, what was fetched, and the final answer, side by side (`--compare` shows both retrieval modes) |
+| `eval` | Full Week 3 evaluation; regenerates `results.md` and `results/` |
+| `eval-failures` | Week 4 evaluation; regenerates `results_week4.md` and `results/week4_evaluation.json` |
 | `sweep --sizes 400 800` | Chunk-size sweep only |
 | `stats` | What is in the index, including the ingest history |
 | `serve` | Web UI and JSON API (`/api/ask`, `/api/search`, `/healthz`) |
 
 Global flags: `--strategy baseline|structure-aware`, `--chunk-size`, `--chunk-overlap`,
 `--index-dir`, `--config`. Each `(strategy, size, overlap)` combination gets its own index
-namespace, so sweeps never overwrite each other.
+namespace, so sweeps never overwrite each other. `--retrieval-mode semantic|hybrid` on
+`search`/`ask`/`inspect` overrides `config.yaml`'s `retrieval.mode` for one call.
 
 ## Tests
 
@@ -140,17 +183,24 @@ namespace, so sweeps never overwrite each other.
 python -m unittest discover -s tests -t .
 ```
 
-48 tests covering chunker guarantees (including the header/row property on the real
+70 tests covering chunker guarantees (including the header/row property on the real
 corpus), metadata validation, store round-trips and filtering, the refusal gate, citation
-validation, and an end-to-end pass that builds a real index in a temp directory.
+validation, an end-to-end pass that builds a real index in a temp directory, BM25 and RRF
+fusion correctness, the retrieval metrics, and the Week 4 claim that hybrid search improves
+hit-rate@3 on the failing-question set without regressing Week 3's own questions.
 
 ## Configuration notes
 
-Everything tunable lives in `config.yaml`. Two values deserve comment:
+Everything tunable lives in `config.yaml`. A few values deserve comment:
 
 - `grounding.min_evidence_coverage` (0.55) is the refusal threshold, calibrated so the
   eight answerable questions (0.63–1.00) sit above it and the three out-of-corpus ones
   (0.15–0.46) below. This is fitted on the evaluation set — see the limitations section of
-  `results.md`.
+  `results.md`. `results_week4.md`'s `N1`/`N2` show it does not generalise to colloquial
+  support-ticket phrasing; that limitation is carried over unchanged, not fixed, this week.
 - `generation.max_tokens` (8000) leaves room for adaptive thinking on `claude-opus-5`,
   where `max_tokens` caps thinking *and* response text together.
+- `retrieval.mode` (`hybrid`) ships as the new default because it measurably improves
+  hit-rate@3 on realistic support-ticket phrasing with zero regressions on Week 3's own
+  question set — see `results_week4.md` for the before/after and `retrieval.rrf_k` /
+  `bm25_k1` / `bm25_b` for the fusion constants.

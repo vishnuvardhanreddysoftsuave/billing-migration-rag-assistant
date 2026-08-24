@@ -122,13 +122,24 @@ class VectorStore:
             return []
         scores = np.asarray((self.matrix @ query_vector.T).todense()).ravel()
         if filters:
-            keep = np.array([_matches(chunk, filters) for chunk in self.chunks], dtype=bool)
+            keep = np.array([matches_filters(chunk, filters) for chunk in self.chunks], dtype=bool)
             scores = np.where(keep, scores, 0.0)
         return self._rank(scores, top_k)
 
     def distinct_values(self, key: str) -> List[str]:
         """Sorted distinct values of a metadata key across the index."""
         return sorted({str(chunk.metadata.get(key, "")) for chunk in self.chunks if chunk.metadata.get(key)})
+
+    def filtered_rows(self, filters: Optional[Dict[str, Any]] = None) -> List[int]:
+        """Row indices matching ``filters`` (or every row when there are none).
+
+        Shared by any ranker that needs the same candidate set the cosine
+        search restricts itself to — the keyword (BM25) ranker in particular,
+        so a hybrid search filters both rankers identically before fusing them.
+        """
+        if not filters:
+            return list(range(len(self.chunks)))
+        return [i for i, chunk in enumerate(self.chunks) if matches_filters(chunk, filters)]
 
     def _rank(self, scores: np.ndarray, top_k: int) -> List[Tuple[int, float]]:
         eligible = np.flatnonzero(scores > 0.0)
@@ -215,7 +226,7 @@ class VectorStore:
         return store
 
 
-def _matches(chunk: Chunk, filters: Dict[str, Any]) -> bool:
+def matches_filters(chunk: Chunk, filters: Dict[str, Any]) -> bool:
     """True when a chunk satisfies every filter (case-insensitive, value or list)."""
     for key, wanted in filters.items():
         if wanted is None or wanted == "":

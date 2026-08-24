@@ -52,6 +52,10 @@ class EmbeddingConfig:
 @dataclass(frozen=True)
 class RetrievalConfig:
     top_k: int
+    mode: str
+    rrf_k: float
+    bm25_k1: float
+    bm25_b: float
 
 
 @dataclass(frozen=True)
@@ -126,6 +130,10 @@ class Config:
             self,
             grounding=replace(self.grounding, min_evidence_coverage=min_evidence_coverage),
         )
+
+    def with_retrieval(self, *, mode: str) -> "Config":
+        """Return a copy with a different retrieval mode (used by the Week 4 harness)."""
+        return replace(self, retrieval=replace(self.retrieval, mode=mode))
 
     def with_chunking(self, *, chunk_size: int | None = None, chunk_overlap: int | None = None) -> "Config":
         """Return a copy with chunk sizing overridden (used by the sweep)."""

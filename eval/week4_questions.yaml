@@ -1,0 +1,215 @@
+# Week 4 Task Set A — failing-question set for the billing-migration help centre.
+#
+# PROVENANCE: unlike eval/questions.yaml (written from the articles before any
+# retrieval ran), every question below was discovered empirically. Each one was
+# run against the Week 3 shipping index (structure-aware chunker, semantic-only
+# hashing-tfidf retrieval, config.yaml as committed at the end of Week 3) BEFORE
+# the hybrid retriever in src/ragchat/bm25.py existed, and its failure verified
+# there — hit-rate@3 = 0, or (for the generation_gate category) a refusal
+# despite the right chunk sitting at rank 1-2. A question is included here only
+# because it was caught failing, the same standard eval/questions.yaml's B1/B2
+# bonus questions were held to.
+#
+# SCORING CONTRACT (fixed before hybrid search was implemented, applied
+# identically to both retrieval modes):
+#   hit@k    = the top-k chunks contain one whose metadata.article_id equals
+#              gold.article_id AND whose text contains every string in
+#              must_contain (case-insensitive substring match) — same
+#              contract as eval/questions.yaml's committed hit criterion.
+#   recall@k = for a question with also_needs entries, the share of
+#              {primary fact} union {each also_needs fact} found in the
+#              top-k, each judged by the same article_id + must_contain test.
+#              A question with no also_needs has recall@k == hit@k.
+#
+# CATEGORY is a disclosed hint at why the question was constructed, not a
+# label the harness trusts blindly: src/ragchat/evaluation.py's
+# evaluate_failures() recomputes retrieval-failure vs generation-failure from
+# the actual rank and the actual pipeline answer, every time this file is run.
+#
+#   keyword_dilution — retrieval failure. The exact error code needed is in
+#     the corpus exactly once, but cosine-normalised semantic search dilutes
+#     its contribution against generic words ("account", "customer", "fix")
+#     that recur in every troubleshooting table across all six articles, and
+#     the answer-bearing chunk lands at rank 4-6 instead of the top-3.
+#   semantic_gap — retrieval failure. The question avoids the corpus's own
+#     vocabulary entirely (paraphrase, slang, vague description), so there is
+#     no exact term for a keyword ranker to recover either.
+#   generation_gate — generation failure. The right chunk IS retrieved inside
+#     the top-3 — this is not a retrieval problem — but the evidence gate's
+#     idf-weighted coverage check refuses anyway, because colloquial words
+#     ("wants", "'ll", "stuck", "deal") are absent from this small corpus and
+#     therefore score maximum idf, swamping the one real signal.
+
+version: 1
+authored_at: "2026-08-25"
+
+questions:
+  # -- keyword_dilution: exact code, diluted by realistic support-ticket phrasing ----
+  - id: K1
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4001, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4001, section: "Troubleshooting: general migration errors"}
+    must_contain: ["ERR-4001", "Re-send the request"]
+    known_answer: >-
+      A write was sent to the legacy billing endpoint after the Phase 3 cutover. Re-send the
+      request to the v2 billing API; the legacy host is read-only after 2026-08-14.
+
+  - id: K2
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4008, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4001, section: "Troubleshooting: general migration errors"}
+    must_contain: ["ERR-4008", "Resolve or withdraw the dispute"]
+    known_answer: >-
+      The account holds an open dispute that blocks the ledger copy. Resolve or withdraw the
+      dispute first; the ledger cannot be copied while amounts are contested.
+
+  - id: K3
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4032, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4002, section: "Troubleshooting: payment method errors"}
+    must_contain: ["ERR-4032", "re-authorise the card"]
+    also_needs:
+      - article_id: HC-4002
+        must_contain: ["physical card"]
+        note: "Re-authorisation walkthrough — what the customer needs in hand to complete the fix"
+    known_answer: >-
+      The stored card token predates the vault migration and has no network transaction
+      identifier. Ask the customer to re-authorise the card under Billing -> Payment methods;
+      they will need the physical card, since the flow asks for the number, expiry and CVC.
+
+  - id: K4
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4034, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4002, section: "Troubleshooting: payment method errors"}
+    must_contain: ["ERR-4034", "Detach the token"]
+    known_answer: >-
+      Two accounts reference the same vault token after a workspace merge. Detach the token
+      from the non-billing account in the vault console; a token may belong to one account only.
+
+  - id: K5
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4088, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4003, section: "Troubleshooting: invoice errors"}
+    must_contain: ["ERR-4088", "Void the duplicate"]
+    known_answer: >-
+      A duplicate invoice number was generated because the legacy sequence was replayed into
+      the new ledger. Void the duplicate and re-issue; the B2- sequence never reuses a number.
+
+  - id: K6
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4093, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4003, section: "Troubleshooting: invoice errors"}
+    must_contain: ["ERR-4093", "Re-run the statement"]
+    known_answer: >-
+      The statement total disagrees with the sum of its line items after currency conversion.
+      Re-run the statement; the conversion rate at issue time must not be recalculated later.
+
+  - id: K7
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4150, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4004, section: "Troubleshooting: plan mapping errors"}
+    must_contain: ["ERR-4150", "Add the mapping"]
+    known_answer: >-
+      The legacy plan has no mapping in the account's price book. Add the mapping in the
+      migration console, then re-run the subscription step only.
+
+  - id: K8
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4156, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4004, section: "Troubleshooting: plan mapping errors"}
+    must_contain: ["ERR-4156", "Map to the next tier up"]
+    known_answer: >-
+      The subscription quantity exceeds the seat ceiling of the target tier. Map to the next
+      tier up, or reduce seats before migrating.
+
+  - id: K9
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4117, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4005, section: "Troubleshooting: tax validation errors"}
+    must_contain: ["ERR-4117", "VIES"]
+    known_answer: >-
+      VIES rejected the VAT ID because the registration is no longer active for cross-border
+      trade. Ask the customer to confirm the number with their tax authority and re-enter it.
+
+  - id: K10
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4121, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4005, section: "Troubleshooting: tax validation errors"}
+    must_contain: ["ERR-4121", "Consolidate the accounts"]
+    known_answer: >-
+      Two accounts in the same workspace claim the same VAT ID. Consolidate the accounts or
+      correct the duplicate; a VAT ID may back one billing account only.
+
+  - id: K11
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4203, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4006, section: "Troubleshooting: API and webhook errors"}
+    must_contain: ["ERR-4203", "HMAC-SHA256"]
+    known_answer: >-
+      The webhook payload was signed with the legacy shared secret. Rotate to the v2 signing
+      secret and verify with HMAC-SHA256 over the raw request body.
+
+  - id: K12
+    category: keyword_dilution
+    question: "Support ticket: account throwing ERR-4208, need root cause and remediation steps quickly."
+    gold: {article_id: HC-4006, section: "Troubleshooting: API and webhook errors"}
+    must_contain: ["ERR-4208", "Acknowledge within 30 seconds"]
+    known_answer: >-
+      The endpoint acknowledged the delivery after the 30-second timeout. Acknowledge within
+      30 seconds and process asynchronously; slow acknowledgements count as failures.
+
+  # -- semantic_gap: hybrid search cannot fix these, and is not expected to ----------
+  - id: G1
+    category: semantic_gap
+    question: "The tax ID doesn't match because of a merger or rename, what do we do?"
+    gold: {article_id: HC-4005, section: "Troubleshooting: tax validation errors"}
+    must_contain: ["ERR-4118"]
+    known_answer: >-
+      The VAT ID is syntactically valid but belongs to a different legal entity than the
+      billing name. Update the billing name to the registered entity name.
+
+  - id: G2
+    category: semantic_gap
+    question: "Nothing happened when the customer tried to migrate early, why?"
+    gold: {article_id: HC-4001, section: "Troubleshooting: general migration errors"}
+    must_contain: ["ERR-4006"]
+    known_answer: >-
+      A migration was attempted before the account's Phase 2 opt-in window opened. Wait for
+      the account's scheduled window; windows are listed in the migration console.
+
+  - id: G3
+    category: semantic_gap
+    question: "A customer is annoyed that their bill still looks wrong after everything moved over, why would that be?"
+    gold: {article_id: HC-4003, section: "Why the first post-migration invoice looks different"}
+    must_contain: ["migration credit"]
+    known_answer: >-
+      A remaining legacy credit balance is carried over as a single "migration credit" line
+      item applied to the first invoice issued after cutover.
+
+  - id: G4
+    category: semantic_gap
+    question: "The numbers on a customer's bill look off after we switched currencies mid-cycle, why?"
+    gold: {article_id: HC-4003, section: "Troubleshooting: invoice errors"}
+    must_contain: ["ERR-4093"]
+    known_answer: >-
+      The statement total disagrees with the sum of its line items after currency conversion,
+      because the rate is fixed at issue time and must not be recalculated later.
+
+  # -- generation_gate: retrieval already succeeds; the pipeline still fails --------
+  - id: N1
+    category: generation_gate
+    question: "What do I tell a customer who wants to know when they'll be fully off the old system?"
+    gold: {article_id: HC-4001, section: "Cutover timeline"}
+    must_contain: ["2026-09-30"]
+    known_answer: >-
+      billing-v1 is switched off and its data archived on 2026-09-30 (Phase 4); no account
+      can stay on the legacy service past that date.
+
+  - id: N2
+    category: generation_gate
+    question: "What's the deal with an account stuck saying its tax number is still being checked?"
+    gold: {article_id: HC-4005, section: "Validation pending status"}
+    must_contain: ["validation pending"]
+    known_answer: >-
+      "Validation pending" is a holding state, not a failure: the account is invoiced normally
+      and the identifier is re-checked automatically within 5 business days.
