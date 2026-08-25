@@ -8,14 +8,17 @@ from the indexed articles, cites a resolvable `chunk_id` for every claim interna
 help-centre drop, compare two chunking strategies on questions with known answers, and prove
 the app won't hallucinate. Week 4 (Task Set A): label a failing question's failure as
 retrieval (wrong document) or generation (right document, wrong answer), make one retrieval
-change, and prove it with a before/after number.*
+change, and prove it with a before/after number. Week 5 (Task Set A): read ~20 real traces
+drawn by a fair random sample, write an honest note on each, and turn that into a ranked,
+named taxonomy of what actually goes wrong.*
 
 This repository contains the base app, the Week 3 extension (a second, structure-aware
 chunking strategy, chunk metadata with retrieval-time filtering, a chat UI, and an evaluation
-harness that produces [results.md](results.md)), and the Week 4 extension (a hybrid
+harness that produces [results.md](results.md)), the Week 4 extension (a hybrid
 semantic+BM25 retriever, a failing-question harness that produces
 [results_week4.md](results_week4.md), and an inspection view for looking at any question's
-retrieval and answer side by side).
+retrieval and answer side by side), and the Week 5 extension (a random-sampling trace harness
+and an open-coding/taxonomy report that produces [results_week5.md](results_week5.md)).
 
 ## Headline numbers
 
@@ -45,6 +48,26 @@ retrieved at rank 1-2; the pipeline still refused, which is a *generation* failu
 retrieval change cannot and should not touch. Full per-question evidence, what did and did
 not get fixed, and the mechanism: **[results_week4.md](results_week4.md)**.
 
+**Week 5 — error analysis.** 20 questions drawn by `random.Random(5).sample(...)` from an
+84-question pool built to cover the whole corpus (every troubleshooting-table error code,
+prose facts, colloquial paraphrases, out-of-corpus questions, and hard multi-part/ambiguous
+cases) — run through the pipeline exactly as it ships today, read one at a time, and coded by
+hand before any grouping happened:
+
+| | Count |
+|---|---|
+| Traces sampled / answered / refused | 20 / 7 / 13 |
+| Refusals that were actually wrong (corpus had the answer) | 11 / 13 |
+| Top-ranked problem | **False refusal on answerable questions (informal phrasing)** — 10/20 traces, score 30 |
+
+The evidence gate's idf-weighted coverage check refuses many answerable, informally-phrased
+support tickets even when the correct chunk is retrieved at rank 1, because ordinary filler
+words ("getting", "trying", "hey", "idea"...) are absent from this small corpus and not on the
+gate's stoplist. One rarer but more dangerous pattern also surfaced: a colloquially-phrased
+question got a fully-cited, confident answer pulled from the *wrong* article. Full per-trace
+notes, the ranked taxonomy, and the fix target chosen for next week (not yet implemented):
+**[results_week5.md](results_week5.md)**.
+
 ## Quick start
 
 ```bash
@@ -57,6 +80,8 @@ python rag.py ask "What does ERR-4032 mean and what is the fix?"
 python rag.py ask "What is the refund SLA for a disputed charge?"   # refuses
 python rag.py eval                                                   # regenerates results.md
 python rag.py eval-failures                                          # regenerates results_week4.md
+python rag.py trace-sample                                           # Week 5: sample 20 questions, record complete traces
+python rag.py eval-errors                                            # regenerates results_week5.md
 
 python rag.py inspect "Support ticket: account throwing ERR-4117, need root cause and remediation steps quickly." --compare
                                                                       # question, fetched chunks (both retrieval modes), and the final answer, side by side
@@ -137,6 +162,9 @@ eval/questions.yaml       8 known-answer + 3 out-of-corpus questions, committed 
 eval/writeup.md           hand-written analysis embedded into results.md (Week 3)
 eval/week4_questions.yaml 18 failing questions, caught empirically against the Week 3 index (Week 4)
 eval/week4_writeup.md     hand-written analysis embedded into results_week4.md (Week 4)
+eval/week5_questions.yaml 84-question candidate pool for random trace sampling (Week 5)
+eval/week5_open_coding.yaml  one honest note + severity + problem group per sampled trace (Week 5)
+eval/week5_writeup.md     hand-written analysis embedded into results_week5.md (Week 5)
 src/ragchat/
   chunkers/               baseline.py, structure_aware.py, registry
   loader.py               front matter + required-metadata validation
@@ -151,10 +179,11 @@ src/ragchat/
   metrics.py              hit-rate@k, recall@k, MRR
   evaluation.py           the harness behind `rag.py eval` (Week 3)
   failure_analysis.py     the harness behind `rag.py eval-failures` (Week 4)
-  reporting.py            writes results.md / results_week4.md and the search dumps
+  tracing.py              random sampling, trace collection, open-coding taxonomy (Week 5)
+  reporting.py            writes results.md / results_week4.md / results_week5.md and the search dumps
   webapp.py               Flask UI + JSON API
-tests/                    70 tests, no network required
-results/                  generated artefacts (json + search dumps)
+tests/                    89 tests, no network required
+results/                  generated artefacts (json + search dumps + week5_traces/*.md)
 docs/code_diff.md         the diff adding the second chunker and the metadata fields
 ```
 
@@ -168,6 +197,8 @@ docs/code_diff.md         the diff adding the second chunker and the metadata fi
 | `inspect "q"` | The question, what was fetched, and the final answer, side by side (`--compare` shows both retrieval modes) |
 | `eval` | Full Week 3 evaluation; regenerates `results.md` and `results/` |
 | `eval-failures` | Week 4 evaluation; regenerates `results_week4.md` and `results/week4_evaluation.json` |
+| `trace-sample` | Week 5: draw a random sample from the question pool and record complete traces (`--n`, `--seed`, `--pool`, `--out`) |
+| `eval-errors` | Week 5 evaluation; regenerates `results_week5.md` from a fresh trace sample plus `eval/week5_open_coding.yaml` |
 | `sweep --sizes 400 800` | Chunk-size sweep only |
 | `stats` | What is in the index, including the ingest history |
 | `serve` | Web UI and JSON API (`/api/ask`, `/api/search`, `/healthz`) |
@@ -183,11 +214,13 @@ namespace, so sweeps never overwrite each other. `--retrieval-mode semantic|hybr
 python -m unittest discover -s tests -t .
 ```
 
-70 tests covering chunker guarantees (including the header/row property on the real
+89 tests covering chunker guarantees (including the header/row property on the real
 corpus), metadata validation, store round-trips and filtering, the refusal gate, citation
 validation, an end-to-end pass that builds a real index in a temp directory, BM25 and RRF
-fusion correctness, the retrieval metrics, and the Week 4 claim that hybrid search improves
-hit-rate@3 on the failing-question set without regressing Week 3's own questions.
+fusion correctness, the retrieval metrics, the Week 4 claim that hybrid search improves
+hit-rate@3 on the failing-question set without regressing Week 3's own questions, and the
+Week 5 claims that the trace sample is deterministic given its seed, every sampled trace has
+exactly one open-coding note, and the taxonomy it builds is ranked correctly.
 
 ## Configuration notes
 

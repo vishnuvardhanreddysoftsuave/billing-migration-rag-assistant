@@ -1,0 +1,758 @@
+# Week 5 Task Set A -- candidate question pool for trace sampling.
+#
+# PROVENANCE: this pool is meant to stand in for "everything a real customer or
+# agent might type at this app", not for "the questions that make a nice demo".
+# It was built by reading all eight indexed articles (the six new HC-4001..4006
+# drops plus the two legacy HC-1007/HC-1012 articles) and writing one candidate
+# per fact worth asking about, BEFORE any of the 20 traces below were sampled or
+# run:
+#   - error_code_ticket   (51 items) -- one question per troubleshooting-table
+#     error code across all six new articles. Every code in every table is
+#     represented; none were selected by hand. Phrasing rotates across five
+#     realistic support-ticket templates by position (index % 5), not by choice
+#     per code, so no code got an easier or harder template on purpose.
+#   - policy_prose        (11 items) -- non-error-code facts (dates, rules,
+#     retry counts) drawn from both the new and the legacy articles.
+#   - colloquial_paraphrase (8 items) -- the same underlying facts, phrased the
+#     way an agent typing quickly actually writes, not the way the article does.
+#   - out_of_corpus       (8 items) -- realistic questions the corpus does not
+#     cover at all (three of these, O1-O3, are eval/questions.yaml's original
+#     U1-U3, reused because that question recurs in real traffic).
+#   - multi_part_ambiguous (6 items) -- genuinely hard cases: an ambiguous
+#     product area, a two-part question mixing an answerable and an unanswerable
+#     half, two error codes in one message, and messages with little or no
+#     specific content.
+#
+# SAMPLING: 20 of the 84 items below are drawn for this week's trace set by
+# `python rag.py trace-sample`, which calls
+# ragchat.tracing.sample_questions(pool, n=20, seed=5) --
+# `random.Random(5).sample(pool, 20)` over this file in the order below. The
+# seed (5, for "Week 5") was fixed before the sampler was ever run and was not
+# re-rolled after seeing which 20 came out; see eval/week5_writeup.md for the
+# resulting id list and eval/week5_open_coding.yaml for the per-trace notes.
+
+version: 1
+authored_at: "2026-08-25"
+sampling:
+  n: 20
+  seed: 5
+
+pool:
+- id: E-4001
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4001, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4001
+  - Re-send the request
+- id: E-4002
+  category: error_code_ticket
+  question: Customer says they got ERR-4002 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4002
+  - 30 minutes
+- id: E-4003
+  category: error_code_ticket
+  question: ERR-4003 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4003
+  - billing currency
+- id: E-4004
+  category: error_code_ticket
+  question: Getting ERR-4004 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4004
+  - Cancel the newer job
+- id: E-4005
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4005. What's the cause and the resolution?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4005
+  - Billing Platform ticket
+- id: E-4006
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4006, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4006
+  - scheduled window
+- id: E-4007
+  category: error_code_ticket
+  question: Customer says they got ERR-4007 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4007
+  - verify their email
+- id: E-4008
+  category: error_code_ticket
+  question: ERR-4008 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4008
+  - Resolve or withdraw the dispute
+- id: E-4030
+  category: error_code_ticket
+  question: Getting ERR-4030 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4030
+  - add a payment method
+- id: E-4031
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4031. What's the cause and the resolution?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4031
+  - expired cards are never migrated
+- id: E-4032
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4032, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4032
+  - re-authorise the card
+- id: E-4033
+  category: error_code_ticket
+  question: Customer says they got ERR-4033 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4033
+  - contact their issuer
+- id: E-4034
+  category: error_code_ticket
+  question: ERR-4034 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4034
+  - Detach the token
+- id: E-4035
+  category: error_code_ticket
+  question: Getting ERR-4035 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4035
+  - Re-collect the mandate
+- id: E-4036
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4036. What's the cause and the resolution?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4036
+  - durable card
+- id: E-4037
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4037, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4037
+  - Update the billing address
+- id: E-4038
+  category: error_code_ticket
+  question: Customer says they got ERR-4038 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4038
+  - Retry once
+- id: E-4085
+  category: error_code_ticket
+  question: ERR-4085 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4085
+  - Void the
+- id: E-4086
+  category: error_code_ticket
+  question: Getting ERR-4086 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4086
+  - Move the anchor to the 28th
+- id: E-4087
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4087. What's the cause and the resolution?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4087
+  - Map the plan
+- id: E-4088
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4088, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4088
+  - Void the duplicate
+- id: E-4089
+  category: error_code_ticket
+  question: Customer says they got ERR-4089 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4089
+  - Split the credit
+- id: E-4090
+  category: error_code_ticket
+  question: ERR-4090 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4090
+  - Re-render with the
+- id: E-4091
+  category: error_code_ticket
+  question: Getting ERR-4091 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4091
+  - current billing contact
+- id: E-4092
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4092. What's the cause and the resolution?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4092
+  - ledger repair job
+- id: E-4093
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4093, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4093
+  - Re-run the statement
+- id: E-4150
+  category: error_code_ticket
+  question: Customer says they got ERR-4150 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4150
+  - Add the mapping
+- id: E-4151
+  category: error_code_ticket
+  question: ERR-4151 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4151
+  - Freeze the price book
+- id: E-4152
+  category: error_code_ticket
+  question: Getting ERR-4152 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4152
+  - Let the trial finish
+- id: E-4153
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4153. What's the cause and the resolution?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4153
+  - Cancel the scheduled change
+- id: E-4154
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4154, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4154
+  - Cap the credit
+- id: E-4155
+  category: error_code_ticket
+  question: Customer says they got ERR-4155 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4155
+  - current replacement tier
+- id: E-4156
+  category: error_code_ticket
+  question: ERR-4156 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4156
+  - Map to the next tier up
+- id: E-4157
+  category: error_code_ticket
+  question: Getting ERR-4157 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4004
+    section: 'Troubleshooting: plan mapping errors'
+  must_contain:
+  - ERR-4157
+  - current tier
+- id: E-4115
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4115. What's the cause and the resolution?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4115
+  - add a tax ID
+- id: E-4116
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4116, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4116
+  - Correct whichever field
+- id: E-4117
+  category: error_code_ticket
+  question: Customer says they got ERR-4117 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4117
+  - VIES
+- id: E-4118
+  category: error_code_ticket
+  question: ERR-4118 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4118
+  - registered entity name
+- id: E-4119
+  category: error_code_ticket
+  question: Getting ERR-4119 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4119
+  - current certificate
+- id: E-4120
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4120. What's the cause and the resolution?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4120
+  - local VAT applied
+- id: E-4121
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4121, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4121
+  - Consolidate the accounts
+- id: E-4122
+  category: error_code_ticket
+  question: Customer says they got ERR-4122 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4122
+  - retry after 24 hours
+- id: E-4200
+  category: error_code_ticket
+  question: ERR-4200 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4200
+  - X-Api-Version
+- id: E-4201
+  category: error_code_ticket
+  question: Getting ERR-4201 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4201
+  - B2- prefix
+- id: E-4202
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4202. What's the cause and the resolution?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4202
+  - minor units
+- id: E-4203
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4203, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4203
+  - HMAC-SHA256
+- id: E-4204
+  category: error_code_ticket
+  question: Customer says they got ERR-4204 when trying to update their billing info -- what's going on
+    and how do we fix it?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4204
+  - replay the events
+- id: E-4205
+  category: error_code_ticket
+  question: ERR-4205 -- can you tell me what this means and what I should do?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4205
+  - tier field
+- id: E-4206
+  category: error_code_ticket
+  question: Getting ERR-4206 on a migrated account, any idea why and what the fix is?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4206
+  - raw body bytes
+- id: E-4207
+  category: error_code_ticket
+  question: Hey, a customer's ticket mentions ERR-4207. What's the cause and the resolution?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4207
+  - Issue a new key
+- id: E-4208
+  category: error_code_ticket
+  question: 'Support ticket: account throwing ERR-4208, need root cause and remediation steps quickly.'
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain:
+  - ERR-4208
+  - Acknowledge within 30 seconds
+- id: P1
+  category: policy_prose
+  question: What three things does a customer visibly notice change after their account is cut over?
+  gold:
+    article_id: HC-4001
+    section: What is changing
+  must_contain:
+  - B2-
+  - Payment methods
+- id: P2
+  category: policy_prose
+  question: When is billing-v1 completely switched off?
+  gold:
+    article_id: HC-4001
+    section: Cutover timeline
+  must_contain:
+  - '2026-09-30'
+- id: P3
+  category: policy_prose
+  question: Do customers need to re-authorise a bank debit mandate (SEPA, BACS or ACH) during the migration?
+  gold:
+    article_id: HC-4002
+    section: How payment methods are migrated
+  must_contain:
+  - do not need to re-authorise
+- id: P4
+  category: policy_prose
+  question: How many times, and over what period, are failed payments retried after migration?
+  gold:
+    article_id: HC-4002
+    section: Dunning and the retry window
+  must_contain:
+  - three times
+  - 10-day
+- id: P5
+  category: policy_prose
+  question: What happens to a legacy credit balance under 1.00 in the account's currency after migration?
+  gold:
+    article_id: HC-4003
+    section: Why the first post-migration invoice looks different
+  must_contain:
+  - written off
+- id: P6
+  category: policy_prose
+  question: How is proration calculated when a subscription is mapped to a new tier mid-cycle?
+  gold:
+    article_id: HC-4004
+    section: How proration is calculated
+  must_contain:
+  - 30-day month
+- id: P7
+  category: policy_prose
+  question: Can a legacy-compatibility tier be renewed at the end of the contract term?
+  gold:
+    article_id: HC-4004
+    section: How legacy plans map to new tiers
+  must_contain:
+  - cannot be renewed
+- id: P8
+  category: policy_prose
+  question: How often does billing-v2 re-check a tax identifier after the initial migration validation?
+  gold:
+    article_id: HC-4005
+    section: What the migration revalidates
+  must_contain:
+  - 90 days
+- id: P9
+  category: policy_prose
+  question: How long does the replay endpoint hold undeliverable webhook events?
+  gold:
+    article_id: HC-4006
+    section: Replaying events
+  must_contain:
+  - 30 days
+- id: P10
+  category: policy_prose
+  question: Why doesn't a legacy invoice's billing period line up with a calendar month?
+  gold:
+    article_id: HC-1007
+    section: Common questions
+  must_contain:
+  - subscription start date
+- id: P11
+  category: policy_prose
+  question: On the legacy billing service, how many nights is a failed charge retried before the subscription
+    is suspended?
+  gold:
+    article_id: HC-1012
+    section: Failed charges
+  must_contain:
+  - 7 nights
+- id: C1
+  category: colloquial_paraphrase
+  question: The tax number thing is stuck saying it's still checking -- is that normal?
+  gold:
+    article_id: HC-4005
+    section: Validation pending status
+  must_contain:
+  - validation pending
+- id: C2
+  category: colloquial_paraphrase
+  question: A customer's mad that their bill still looks wrong even after everything moved over, what's
+    up with that?
+  gold:
+    article_id: HC-4003
+    section: Why the first post-migration invoice looks different
+  must_contain:
+  - migration credit
+- id: C3
+  category: colloquial_paraphrase
+  question: When do people actually lose access to the old billing system for good?
+  gold:
+    article_id: HC-4001
+    section: Cutover timeline
+  must_contain:
+  - '2026-09-30'
+- id: C4
+  category: colloquial_paraphrase
+  question: Somebody tried to move their account over too early and nothing happened, why would that be?
+  gold:
+    article_id: HC-4001
+    section: 'Troubleshooting: general migration errors'
+  must_contain:
+  - ERR-4006
+- id: C5
+  category: colloquial_paraphrase
+  question: The card thing is broken because of some merger on their end, what do we tell them?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4034
+- id: C6
+  category: colloquial_paraphrase
+  question: Their webhook stuff stopped working after the cutover, any idea why?
+  gold:
+    article_id: HC-4006
+    section: 'Troubleshooting: API and webhook errors'
+  must_contain: []
+  note: deliberately ambiguous -- several webhook error codes could apply; no single must_contain is fair.
+- id: C7
+  category: colloquial_paraphrase
+  question: The tax ID got knocked back because it apparently belongs to a different company now, what
+    next?
+  gold:
+    article_id: HC-4005
+    section: 'Troubleshooting: tax validation errors'
+  must_contain:
+  - ERR-4118
+- id: C8
+  category: colloquial_paraphrase
+  question: How come a customer's numbers look off after we changed currencies partway through the billing
+    period?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4093
+- id: O1
+  category: out_of_corpus
+  question: What is the refund SLA for a charge disputed during the billing migration?
+  why_absent: No article states a refund service-level agreement; HC-4001 mentions disputes only as a
+    migration blocker (ERR-4008).
+- id: O2
+  category: out_of_corpus
+  question: What are the billing support hotline's hours of operation?
+  why_absent: The corpus contains no support contact details or opening hours.
+- id: O3
+  category: out_of_corpus
+  question: What discount applies if a customer prepays for 12 months during the migration window?
+  why_absent: No article mentions prepayment discounts; HC-4004 covers plan mapping and proration only.
+- id: O4
+  category: out_of_corpus
+  question: Can a customer close their account entirely instead of migrating it?
+  why_absent: No article covers account closure or cancellation as an alternative to migration.
+- id: O5
+  category: out_of_corpus
+  question: Do you accept cryptocurrency as a payment method after the migration?
+  why_absent: No article mentions cryptocurrency; payment methods discussed are cards and bank debit mandates
+    only.
+- id: O6
+  category: out_of_corpus
+  question: A customer wants all their billing data deleted under GDPR -- how do we handle that request?
+  why_absent: No article covers data-subject deletion requests or GDPR process.
+- id: O7
+  category: out_of_corpus
+  question: Can support agents negotiate a custom discount for a customer who is threatening to cancel?
+  why_absent: No article covers retention discounts or negotiation authority.
+- id: O8
+  category: out_of_corpus
+  question: How does your pricing compare to other billing platforms on the market?
+  why_absent: The corpus documents this company's own migration mechanics only, never competitor pricing.
+- id: M1
+  category: multi_part_ambiguous
+  question: How long is the retry window after a failure?
+  gold:
+    article_id: HC-4002
+    section: Dunning and the retry window
+  must_contain: []
+  note: 'ambiguous across the corpus without a product_area filter: HC-4002 documents a 10-day payment-dunning
+    retry window, HC-4006 documents a 24-hour webhook retry window (see eval/questions.yaml F1).'
+- id: M2
+  category: multi_part_ambiguous
+  question: A customer got ERR-4032 and also wants to know if they can get a refund for the inconvenience
+    -- what do I tell them?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4032
+  note: mixes one answerable sub-question (ERR-4032 fix) with one the corpus cannot answer (refund policy).
+- id: M3
+  category: multi_part_ambiguous
+  question: It's not working, please help.
+  gold: null
+  must_contain: []
+  note: no specifics at all -- realistic low-information first message in a support chat.
+- id: M4
+  category: multi_part_ambiguous
+  question: We're seeing both ERR-4088 and ERR-4093 on the same account's invoice -- are these related,
+    and how do we fix each?
+  gold:
+    article_id: HC-4003
+    section: 'Troubleshooting: invoice errors'
+  must_contain:
+  - ERR-4088
+  - ERR-4093
+  note: two distinct error codes in one question; both are in the same article/section but require two
+    different fixes.
+- id: M5
+  category: multi_part_ambiguous
+  question: My bill is wrong.
+  gold: null
+  must_contain: []
+  note: terse, realistic, and could map to several different invoice articles depending on follow-up.
+- id: M6
+  category: multi_part_ambiguous
+  question: Hi, sorry to bother you, I've been a customer for years and I really appreciate the service,
+    but I logged in this morning and things looked strange, the dashboard was slow to load and then when
+    I went to check my subscription tier everything seemed fine but then I got an email about my card,
+    and when I tried to fix it in the payment methods page it gave me an error, I think it was ERR-4032
+    or something like that, can you help me figure out what's going on and what I actually need to do?
+  gold:
+    article_id: HC-4002
+    section: 'Troubleshooting: payment method errors'
+  must_contain:
+  - ERR-4032
+  note: the real question (ERR-4032) is buried in a long, rambling ticket with irrelevant detail -- realistic
+    support-chat noise.

@@ -88,6 +88,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_eval4.add_argument("--questions", type=Path, default=None, help="path to week4_questions.yaml")
     p_eval4.add_argument("--out", type=Path, default=None, help="directory for the generated report")
 
+    p_trace = sub.add_parser(
+        "trace-sample",
+        help="Week 5: draw a random sample of questions and record complete traces for error analysis",
+    )
+    p_trace.add_argument("--pool", type=Path, default=None, help="path to week5_questions.yaml")
+    p_trace.add_argument("--n", type=int, default=20, help="sample size")
+    p_trace.add_argument("--seed", type=int, default=5, help="RNG seed for the sample (fixed before the first run)")
+    p_trace.add_argument("--out", type=Path, default=None, help="directory for the generated traces")
+
+    p_errors = sub.add_parser(
+        "eval-errors",
+        help="Week 5: regenerate traces, load the open-coding notes, and write the ranked taxonomy report",
+    )
+    p_errors.add_argument("--pool", type=Path, default=None, help="path to week5_questions.yaml")
+    p_errors.add_argument("--coding", type=Path, default=None, help="path to week5_open_coding.yaml")
+    p_errors.add_argument("--n", type=int, default=20, help="sample size")
+    p_errors.add_argument("--seed", type=int, default=5, help="RNG seed for the sample")
+    p_errors.add_argument("--out", type=Path, default=None, help="directory for the generated report")
+
     p_serve = sub.add_parser("serve", help="run the web UI")
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=5000)
@@ -195,6 +214,43 @@ def _dispatch(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
             out_dir=args.out,
         )
         print(report.summary_text())
+        return 0
+
+    if args.command == "trace-sample":
+        from .tracing import run_trace_sample
+
+        trace_set = run_trace_sample(
+            config,
+            pool_path=args.pool,
+            strategy=strategy,
+            index_dir=args.index_dir,
+            n=args.n,
+            seed=args.seed,
+            out_dir=args.out,
+        )
+        print(trace_set.summary_text())
+        return 0
+
+    if args.command == "eval-errors":
+        from .tracing import run_week5_report
+
+        result = run_week5_report(
+            config,
+            pool_path=args.pool,
+            coding_path=args.coding,
+            strategy=strategy,
+            index_dir=args.index_dir,
+            n=args.n,
+            seed=args.seed,
+            out_dir=args.out,
+        )
+        trace_set = result["trace_set"]
+        taxonomy = result["taxonomy"]
+        print(trace_set.summary_text())
+        print("")
+        print("ranked problems:")
+        for i, row in enumerate(taxonomy, start=1):
+            print(f"  {i}. {row.name}  (n={row.count}, mean_severity={row.mean_severity:.1f}, score={row.score:.1f})")
         return 0
 
     if args.command == "eval":
